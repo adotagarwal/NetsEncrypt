@@ -56,7 +56,7 @@ namespace LetsEncryptClient
         {
             var dnsUpdater = new PowerShellWindowsDnsUpdater();
             var client = new LetsEncryptClient(LetsEncryptClient.API_ENDPOINT);
-            await client.Init("austin@aaiserv.com", CancellationToken.None);
+            await client.Init("johndoe@gmail.com", CancellationToken.None);
             var tos = client.GetTermsOfServiceUri(); // user should agree to this
 
             // start a new order for the *.example.net wildcard domain

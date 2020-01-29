@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using NetsEncrypt.ACMEClient.JsonWebSignature;
 using NetsEncrypt.ACMEClient.Model;
+using NetsEncrypt.Common;
 using Newtonsoft.Json;
 
 namespace NetsEncrypt.ACMEClient.CacheStore

@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Management.Automation;
 using System.Threading.Tasks;
+using NetsEncrypt.Common;
 using Newtonsoft.Json;
 
-namespace NetsEncrypt.ACMEClient.DNS
+namespace NetsEncrypt.WindowsDnsUpdater
 {
     public class PowerShellWindowsDnsUpdater : IDnsUpdater
     {
@@ -39,7 +40,7 @@ return 1
                 psi.AddParameter("key", host);
 
                 var output = psi.Invoke();
-                JsonConvert.SerializeObject(output).Dump();
+                Console.WriteLine($"PowerShell output: {JsonConvert.SerializeObject(output)}");
             }
 
             await Task.Delay(1000);

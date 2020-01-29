@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace NetsEncrypt.ACMEClient.Model
+namespace NetsEncrypt.Common
 {
     public class ACMECertificate
     {

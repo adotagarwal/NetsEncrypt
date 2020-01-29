@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace NetsEncrypt.ACMEClient.DNS
+namespace NetsEncrypt.Common
 {
     public interface IDnsUpdater
     {

@@ -12,13 +12,13 @@ using NetsEncrypt.ACMEClient.ACME;
 using NetsEncrypt.ACMEClient.CacheStore;
 using NetsEncrypt.ACMEClient.JsonWebSignature;
 using NetsEncrypt.ACMEClient.Model;
+using NetsEncrypt.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NetsEncrypt.ACMEClient
 {
-
-    public class ACMEClient : IACMEClient
+    public class ACMEWebAPIClient : IACMEClient
     {
         public const string STAGE_API_ENDPOINT = "https://acme-staging-v02.api.letsencrypt.org/directory";
         public const string API_ENDPOINT = "https://acme-v02.api.letsencrypt.org/directory";
@@ -46,7 +46,7 @@ namespace NetsEncrypt.ACMEClient
         private HttpClient _client;
         #endregion
 
-        public ACMEClient(string url)
+        public ACMEWebAPIClient(string url)
         {
             //_url = url ?? throw new ArgumentNullException(nameof(url));
             _client = HttpClientCache.GetCachedClient(url ?? throw new ArgumentNullException(nameof(url)));

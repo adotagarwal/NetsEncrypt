@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using NetsEncrypt.ACMEClient.Model;
 
-namespace NetsEncrypt.ACMEClient
+namespace NetsEncrypt.Common
 {
     public interface IACMEClient
     {

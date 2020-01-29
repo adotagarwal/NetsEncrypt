@@ -6,38 +6,17 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using LetsEncryptClient.JsonWebSignature;
 
 namespace LetsEncryptClient.CacheStore
 {
     internal class RegistrationCache
     {
-        private static readonly object _locker = new object();
-        private static volatile RegistrationCache _cache = null;
+        #region Persistence Helpers
 
-        public static string GetDefaultCacheFilename(string apiUrl)
+        public static void SaveCacheToFile(RegistrationCache cache, string fileName)
         {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create);
-            var hash = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(apiUrl));
-            var file = ACMEEncryptor.Base64UrlEncoded(hash) + ".lets-encrypt.cache.json";
-            return Path.Combine(home, file);
-        }
-
-        public static void SetInstance(RegistrationCache cache)
-        {
-            if (_cache == null)
-                lock (_locker)
-                    if (_cache ==null)
-                        _cache = cache;
-        }
-
-        public static RegistrationCache Instance => _cache;
-
-        public static void SaveInstance(string fileName)
-        {
-            lock (_locker)
-            {
-                File.WriteAllText(fileName, JsonConvert.SerializeObject(_cache, Newtonsoft.Json.Formatting.Indented));
-            }
+            File.WriteAllText(fileName, JsonConvert.SerializeObject(cache, Newtonsoft.Json.Formatting.Indented));
         }
 
         public static RegistrationCache LoadCacheFromFile(string fileName)
@@ -45,43 +24,71 @@ namespace LetsEncryptClient.CacheStore
             return JsonConvert.DeserializeObject<RegistrationCache>(File.ReadAllText(fileName));
         }
 
+        #endregion
+
+        #region Singleton Instance
+
+        private static readonly object _locker = new object();
+        private static volatile RegistrationCache _cache;
+
+        public static RegistrationCache Instance => _cache;
+        
+        public static void SetInstance(RegistrationCache cache)
+        {
+            if (_cache != null) return;
+
+            lock (_locker)
+                if (_cache ==null)
+                    _cache = cache;
+        }
+
+        public static void SaveInstance(string fileName)
+        {
+            lock (_locker)
+                SaveCacheToFile(Instance, fileName);
+        }
+        
+        public static string GetDefaultCacheFilename(string apiUrl)
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create);
+            var hash = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(apiUrl));
+            var file = JsonWebSigner.Base64UrlEncoded(hash) + ".lets-encrypt.cache.json";
+            return Path.Combine(home, file);
+        }
+
         public static void ResetCachedCertificate(IEnumerable<string> hostsToRemove)
         {
             foreach (var host in hostsToRemove)
-            {
                 Instance?.CachedCerts?.Remove(host);
-            }
         }
 
-        public static bool TryGetCachedCertificate(List<string> hosts, out CachedCertificateResult value)
+        public static bool TryGetCachedCertificate(List<string> hosts, out ACMECertificate value)
         {
-            value = null;
-            if (Instance.CachedCerts.TryGetValue(hosts[0], out var cache) == false)
-            {
-                return false;
-            }
-
-            var cert = new X509Certificate2(cache.Cert);
-
-            // if it is about to expire, we need to refresh
-            if ((cert.NotAfter - DateTime.UtcNow).TotalDays < 14)
+            if (Instance.CachedCerts.TryGetValue(hosts[0], out value) == false)
                 return false;
 
-            var rsa = new RSACryptoServiceProvider(4096);
-            rsa.ImportCspBlob(cache.Private);
+            if ((value.Certificate.NotAfter - DateTime.UtcNow).TotalDays < 14)
+                return false;
 
-            value = new CachedCertificateResult
-            {
-                Certificate = cache.Cert,
-                PrivateKey = rsa
-            };
             return true;
         }
 
-        public readonly Dictionary<string, CertificateCache> CachedCerts = new Dictionary<string, CertificateCache>(StringComparer.OrdinalIgnoreCase);
-        public byte[] AccountKey;
-        public string Id;
-        public ACMEPrivateKey Key;
-        public Uri Location;
+        public static void AddOrUpdateCachedCertificate(string host, ACMECertificate certificate)
+        {
+            lock (_locker)
+            {
+                Instance.CachedCerts[host] = certificate;
+            }
+        }
+
+        #endregion
+
+
+        public readonly Dictionary<string, ACMECertificate> CachedCerts = new Dictionary<string, ACMECertificate>(StringComparer.OrdinalIgnoreCase);
+
+        public byte[] AccountKey { get; set; }
+        public string Id { get; set; }
+        public JsonWebKey Key { get; set; }
+        public Uri Location { get; set; }
     }
 }

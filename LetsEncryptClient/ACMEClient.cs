@@ -13,11 +13,12 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using LetsEncryptClient.JsonWebSignature;
 
 namespace LetsEncryptClient
 {
 
-    public class LetsEncryptClient : ILetsEncryptClient
+    public class ACMEClient : IACMEClient
     {
         public const string STAGE_API_ENDPOINT = "https://acme-staging-v02.api.letsencrypt.org/directory";
         public const string API_ENDPOINT = "https://acme-v02.api.letsencrypt.org/directory";
@@ -34,7 +35,7 @@ namespace LetsEncryptClient
 
         #region Current State
         private APIDirectory _directory;
-        private ACMEEncryptor _encryptor;
+        private JsonWebSigner _encryptor;
         private RSACryptoServiceProvider _accountKey;
         private List<AuthorizationChallenge> _challenges = new List<AuthorizationChallenge>();
         private Order _currentOrder;
@@ -45,7 +46,7 @@ namespace LetsEncryptClient
         private HttpClient _client;
         #endregion
 
-        public LetsEncryptClient(string url)
+        public ACMEClient(string url)
         {
             //_url = url ?? throw new ArgumentNullException(nameof(url));
             _client = HttpClientCache.GetCachedClient(url ?? throw new ArgumentNullException(nameof(url)));
@@ -68,7 +69,7 @@ namespace LetsEncryptClient
                 {
                     RegistrationCache.SetInstance(RegistrationCache.LoadCacheFromFile(_cachePath));
                     _accountKey.ImportCspBlob(RegistrationCache.Instance.AccountKey);
-                    _encryptor = new ACMEEncryptor(_accountKey, RegistrationCache.Instance.Location.ToString());
+                    _encryptor = new JsonWebSigner(_accountKey, RegistrationCache.Instance.Location.ToString());
                     success = true;
                 }
                 catch
@@ -81,7 +82,7 @@ namespace LetsEncryptClient
             }
 
             // no account found, create a new account
-            _encryptor = new ACMEEncryptor(_accountKey, null);
+            _encryptor = new JsonWebSigner(_accountKey, null);
             var (account, response) = await SendAsync<Account>(HttpMethod.Post, _directory.NewAccount, new Account
             {
                 // we validate this in the UI before we get here, so that is fine
@@ -221,7 +222,7 @@ namespace LetsEncryptClient
                 var keyToken = _encryptor.GetKeyAuthorization(challenge.Token);
                 using (var sha256 = SHA256.Create())
                 {
-                    var dnsToken = ACMEEncryptor.Base64UrlEncoded(sha256.ComputeHash(Encoding.UTF8.GetBytes(keyToken)));
+                    var dnsToken = JsonWebSigner.Base64UrlEncoded(sha256.ComputeHash(Encoding.UTF8.GetBytes(keyToken)));
                     results[challengeResponse.Identifier.Value] = dnsToken;
                 }
             }
@@ -254,7 +255,7 @@ namespace LetsEncryptClient
             }
         }
 
-        public async Task<(X509Certificate2 Cert, RSA PrivateKey)> GetCertificate(CancellationToken token = default(CancellationToken))
+        public async Task<ACMECertificate> GetCertificate(CancellationToken token = default(CancellationToken))
         {
             var key = new RSACryptoServiceProvider(4096);
             var csr = new CertificateRequest("CN=" + _currentOrder.Identifiers[0].Value,
@@ -268,7 +269,7 @@ namespace LetsEncryptClient
 
             var (response, responseText) = await SendAsync<Order>(HttpMethod.Post, _currentOrder.Finalize, new FinalizeRequest
             {
-                CSR = ACMEEncryptor.Base64UrlEncoded(csr.CreateSigningRequest())
+                CSR = JsonWebSigner.Base64UrlEncoded(csr.CreateSigningRequest())
             }, token);
 
             while (response.Status != "valid")
@@ -285,16 +286,18 @@ namespace LetsEncryptClient
             }
             var (pem, _) = await SendAsync<string>(HttpMethod.Post, response.Certificate, null, token);
 
-            var cert = new X509Certificate2(Encoding.UTF8.GetBytes(pem));
+            var retVal = new ACMECertificate() { CertificateString = pem, PrivateKey = key };
 
-            RegistrationCache.Instance.CachedCerts[_currentOrder.Identifiers[0].Value] = new CertificateCache
-            {
-                Cert = pem,
-                Private = key.ExportCspBlob(true)
-            };
-
+            RegistrationCache.AddOrUpdateCachedCertificate(_currentOrder.Identifiers[0].Value, retVal);
             RegistrationCache.SaveInstance(_cachePath);
-            return (cert, key);
+
+            return retVal;
+        }
+
+        public Task RevokeCertificate(string[] domainIdentifiers, CancellationToken token = default(CancellationToken))
+        {
+            //todo: implement
+            throw new NotImplementedException();
         }
 
         public string GetTermsOfServiceUri()

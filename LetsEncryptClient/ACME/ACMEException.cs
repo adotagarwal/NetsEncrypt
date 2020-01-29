@@ -1,8 +1,8 @@
-﻿using LetsEncryptClient.Model;
-using System;
+﻿using System;
 using System.Net.Http;
+using LetsEncryptClient.Model;
 
-namespace LetsEncryptClient
+namespace LetsEncryptClient.ACME
 {
     public class ACMEException : Exception
     {

@@ -1,12 +1,11 @@
-﻿
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
-namespace LetsEncryptClient.ACME
+namespace LetsEncryptClient.JsonWebSignature
 {
     /// <summary>
     /// Jwk
     /// </summary>
-    public class ACMEPrivateKey
+    public class JsonWebKey
     {
         [JsonProperty("kty")]
         public string KeyType { get; set; }

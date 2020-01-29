@@ -1,23 +1,24 @@
-﻿using LetsEncryptClient.Model;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Security.Cryptography;
 using System.Text;
+using LetsEncryptClient.ACME;
+using LetsEncryptClient.Model;
+using Newtonsoft.Json;
 
-namespace LetsEncryptClient.ACME
+namespace LetsEncryptClient.JsonWebSignature
 {
-    internal class ACMEEncryptor
+    internal class JsonWebSigner
     {
-        private readonly ACMEPrivateKey _jwk;
+        private readonly JsonWebKey _jwk;
         private readonly RSA _rsa;
 
-        public ACMEEncryptor(RSA rsa, string keyId)
+        public JsonWebSigner(RSA rsa, string keyId)
         {
             _rsa = rsa ?? throw new ArgumentNullException(nameof(rsa));
 
             var publicParameters = rsa.ExportParameters(false);
 
-            _jwk = new ACMEPrivateKey
+            _jwk = new JsonWebKey
             {
                 KeyType = "RSA",
                 Exponent = Base64UrlEncoded(publicParameters.Exponent),

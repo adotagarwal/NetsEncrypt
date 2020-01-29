@@ -1,6 +1,6 @@
-﻿
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
+using LetsEncryptClient.JsonWebSignature;
 
 namespace LetsEncryptClient.ACME
 {
@@ -13,7 +13,7 @@ namespace LetsEncryptClient.ACME
         {
         }
 
-        public ACMERequestHeader(string algorithm, ACMEPrivateKey key)
+        public ACMERequestHeader(string algorithm, JsonWebKey key)
         {
             Algorithm = algorithm;
             Key = key;
@@ -23,7 +23,7 @@ namespace LetsEncryptClient.ACME
         public string Algorithm { get; set; }
 
         [JsonProperty("jwk")]
-        public ACMEPrivateKey Key { get; set; }
+        public JsonWebKey Key { get; set; }
 
 
         [JsonProperty("kid")]

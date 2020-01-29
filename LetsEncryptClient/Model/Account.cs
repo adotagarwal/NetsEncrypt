@@ -1,6 +1,7 @@
 ﻿using LetsEncryptClient.ACME;
 using Newtonsoft.Json;
 using System;
+using LetsEncryptClient.JsonWebSignature;
 
 namespace LetsEncryptClient.Model
 {
@@ -22,7 +23,7 @@ namespace LetsEncryptClient.Model
         public DateTime CreatedAt { get; set; }
 
         [JsonProperty("key")]
-        public ACMEPrivateKey Key { get; set; }
+        public JsonWebKey Key { get; set; }
 
         [JsonProperty("initialIp")]
         public string InitialIp { get; set; }
